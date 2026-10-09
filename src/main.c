@@ -30,6 +30,41 @@ typedef struct wav_data_s
 	unsigned char* data;
 } wav_data_t;
 
+wav_data_t load_sample(format_header_t* out_header);
+void release_wav_data(wav_data_t* data);
+complex_t complex_add(const complex_t* a, const complex_t* b);
+complex_t complex_sub(const complex_t* a, const complex_t* b);
+complex_t complex_mul(const complex_t* a, const complex_t* b);
+complex_t complex_exp(double theta);
+double complex_mag(const complex_t* a);
+int* br_order_malloc(int bit_size);
+complex_t* fft_malloc(double* input, size_t samples, int* out_size);
+complex_t* ifft_malloc(const complex_t* freq_domain, int n);
+
+int main(void)
+{
+	const double PI = acos(-1);
+
+	int fc = 100000;
+	double ac = 1.0;
+
+	format_header_t header;
+	wav_data_t sample = load_sample(&header);
+
+	printf("block_size: %d, audio_format: %d, channels: %d,\n"
+		"sample_rate: %d, byte per second: %d, byte per block: %d\n"
+		"byte per sample: %d\n", header.block_size, header.audio_format, header.channels
+		, header.sample_rate, header.byte_per_sec, header.byte_per_block
+		, header.bits_per_sample);
+
+	printf("data size: %d\n", sample.size);
+
+	release_wav_data(&sample);
+	
+	return 0;
+}
+
+
 wav_data_t load_sample(format_header_t* out_header)
 {
 	FILE* sample = fopen("resources/sample.wav", "rb");
@@ -38,7 +73,7 @@ wav_data_t load_sample(format_header_t* out_header)
 	fseek(sample, 16, SEEK_SET);
 	fread(out_header, sizeof(format_header_t), 1, sample);
 
-	fseek(sample, 40, SEEK_SET);
+	fseek(sample, out_header->block_size + 24, SEEK_SET);
 	fread(&res.size, sizeof(unsigned int), 1, sample);
 	res.data = malloc(res.size);
 	assert(res.data != NULL);
@@ -229,26 +264,4 @@ complex_t* ifft_malloc(const complex_t* freq_domain, int n)
 	return res;
 }
 
-int main(void)
-{
-	const double PI = acos(-1);
-
-	int fc = 100000;
-	double ac = 1.0;
-
-	format_header_t header;
-	wav_data_t sample = load_sample(&header);
-
-	printf("block_size: %d, audio_format: %d, channels: %d,\n"
-		"sample_rate: %d, byte per second: %d, byte per block: %d\n"
-		"byte per sample: %d\n", header.block_size, header.audio_format, header.channels
-		, header.sample_rate, header.byte_per_sec, header.byte_per_block
-		, header.bits_per_sample);
-
-	printf("data size: %d\n", sample.size);
-
-	release_wav_data(&sample);
-	
-	return 0;
-}
 
